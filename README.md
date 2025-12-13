@@ -1,35 +1,44 @@
 ```mermaid
 erDiagram
     Animal {
-        int id PK
+        int id_animal PK
         string nome
         string especie
         int idade
         date data_resgate
         string status_adocao
     }
-    InfoAdocao {
-        int id PK
-        date data
-        string descricao
-        string data_adocao
-        int animal_id FK
-        bool cancelamento
-    }
+
     Adotante {
-        int id PK
+        int id_adotante PK
         string nome
         string contato
         string endereco
         string preferencias
     }
-    Ani_Adot {
-        int animal_id PK, FK
-        int adotante_id PK, FK
+
+    Adocao {
+        int id_adocao PK
+        int id_animal  FK
+        int id_adotante FK
+        int id_atendente FK
+        date data_adocao
+        string descricao
+        bool cancelamento
+    }
+    AdocaoAtend{
+        int id_adocao PK, FK
+        int id_atendente PK, FK
+    }
+    
+    Atendente {
+        int id_atendente PK
+        str nome
     }
 
-    Animal ||--o{ InfoAdocao : "possui"
-    Animal ||--o{ Ani_Adot : "relaciona"
-    Adotante ||--o{ Ani_Adot : "relaciona"
-
+   
+    Animal ||--o{ Adocao : "possui"
+    Adotante ||--o{ Adocao : "realiza"
+    Adocao ||--o{ AdocaoAtend : "envolve"
+    Atendente ||--o{ AdocaoAtend : "participa"
 ```
