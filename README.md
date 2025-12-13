@@ -22,7 +22,7 @@ erDiagram
         string endereco
         string preferencias
     }
-    Ani_adot {
+    Ani_Adot {
         int animal_id PK, FK
         int adotante_id PK, FK
     }
