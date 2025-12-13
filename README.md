@@ -6,6 +6,7 @@ erDiagram
         string especie
         int idade
         date data_resgate
+        date data_adocao
         string status_adocao
     }
     Atendimento {
@@ -22,13 +23,12 @@ erDiagram
         string endereco
         string preferencias
     }
-    Adocao {
+    InfoAdocao {
         int animal_id PK, FK
         int adotante_id PK, FK
-        date data_adocao
     }
-    Animal ||--o{ Atendimento : "tem atendimentos"
-    Animal }o--o{ Adocao : "relacionado por"
-    Adotante }o--o{ Adocao : "adota via"
+    Animal ||--o{ Atendimento : "tem"
+    Animal }o--o{ Adocao : "tem"
+    Adotante }o--o{ Adocao : "tem"
 
 ```
