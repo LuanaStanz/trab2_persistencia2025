@@ -54,9 +54,29 @@ def realizar_adocao(adocao_in: AdocaoCreate, session: Session = Depends(get_sess
         session.rollback() 
         raise HTTPException(status_code=500, detail=f"Erro ao processar adoção: {e}")
 
+# --- READ (Listagem com Filtros de Relacionamento) ---
 @router.get("/", response_model=List[Adocao])
-def listar_adocoes(session: Session = Depends(get_session)):
-    return session.exec(select(Adocao)).all()
+def listar_adocoes(
+    session: Session = Depends(get_session),
+    id_animal: int | None = Query(None, description="Listar adoções deste Animal"),
+    id_adotante: int | None = Query(None, description="Listar adoções deste Adotante"),
+    id_atendente: int | None = Query(None, description="Listar adoções deste Atendente"),
+):
+    query = select(Adocao)
+
+    # Filtro por Animal
+    if id_animal:
+        query = query.where(Adocao.id_animal == id_animal)
+    
+    # Filtro por Adotante
+    if id_adotante:
+        query = query.where(Adocao.id_adotante == id_adotante)
+
+    # Filtro por Atendente
+    if id_atendente:
+        query = query.join(AdocaoAtend).where(AdocaoAtend.id_atendente == id_atendente)
+
+    return session.exec(query).all()
 
 @router.get("/detalhes")
 def listar_adocoes_detalhadas(session: Session = Depends(get_session)):
