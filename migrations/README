@@ -1,0 +1,7 @@
+Generic single-database configuration.
+
+gerada uma migração inicial com:
+alembic revision --autogenerate -m "init tables"
+
+migração foi aplicada com sucesso usando:
+alembic upgrade head
