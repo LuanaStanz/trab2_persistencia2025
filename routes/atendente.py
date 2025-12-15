@@ -17,44 +17,34 @@ def create_atendente(atendente: Atendente, session: Session = Depends(get_sessio
 
 @router.get("/")
 def listar_atendentes(offset: int = 0, limit: int = Query(default=10, le=100), session: Session = Depends(get_session)):
-    stmt = select(Atendente).offset(offset).limit(limit)
-    return session.exec(stmt).all()
+    return session.exec(select(Atendente).offset(offset).limit(limit)).all()
 
 # Buscar atendente pelo nome
 @router.get("/buscar/nome")
-def buscar_atendente_nome(
-    nome: str,
-    offset: int = 0,
-    limit: int = 10,
-    session: Session = Depends(get_session)
-):
-    stmt = (
+def buscar_atendente_nome(nome: str,offset: int = 0,limit: int = 10,session: Session = Depends(get_session)):
+    p = (
         select(Atendente)
         .where(Atendente.nome.ilike(f"%{nome}%"))
         .offset(offset)
         .limit(limit)
     )
-    return session.exec(stmt).all()
+    return session.exec(p).all()
 
  # Quantidade total de atendentes cadastrados
 @router.get("/stats/total")
 def total_atendentes(session: Session = Depends(get_session)):
-    stmt = select(func.count(Atendente.id_atendente))
-    return session.exec(stmt).one()
+    p = select(func.count(Atendente.id_atendente))
+    return session.exec(p).one()
 
 @router.get("/ordenar/nome")
-def ordenar_atendentes_nome(
-    offset: int = 0,
-    limit: int = Query(default=10, le=100),
-    session: Session = Depends(get_session)
-):
-    stmt = (
+def ordenar_atendentes_nome(offset: int = 0,limit: int = Query(default=10, le=100),session: Session = Depends(get_session)):
+    p = (
         select(Atendente)
         .order_by(Atendente.nome.asc())
         .offset(offset)
         .limit(limit)
     )
-    return session.exec(stmt).all()
+    return session.exec(p).all()
 
 @router.put("/{atendente_id}")
 def update_atendente(atendente_id: int, atendente: Atendente, session: Session = Depends(get_session)):
