@@ -93,3 +93,12 @@ def estatisticas_animais(session: Session = Depends(get_session)):
         "disponiveis": disponiveis,
         "adotados": adotados
     }
+    
+@router.get("/ordenados/idade", response_model=List[Animal])
+def listar_animais_por_idade(
+    session: Session = Depends(get_session)
+):
+    # Do mais novo (menor idade) para o mais velho (maior idade)
+    query = select(Animal).order_by(Animal.idade.asc())
+    return session.exec(query).all()
+
