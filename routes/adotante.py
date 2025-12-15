@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlmodel import Session, select
-from sqlalchemy.orm import selectinload
 from database import get_session
 from modelos.adotante import Adotante
 
@@ -37,7 +36,7 @@ def by_name_adotante(nome: str,offset: int = 0,limit: int = 10,session: Session 
 def read_adotante(adotante_id: int, session: Session = Depends(get_session)):
     adotante = session.get(Adotante, adotante_id)
     if not adotante:
-        return {"erro": "Adotante não encontrado"}
+        raise HTTPException(status_code=404, detail="Adotante não encontrado")
     return adotante
 
 # UPDATE
