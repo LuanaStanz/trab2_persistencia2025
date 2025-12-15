@@ -4,7 +4,6 @@ from sqlalchemy import extract
 from sqlalchemy.orm import selectinload, joinedload
 from database import get_session
 from modelos.adocao import Adocao
-from modelos.adocao_atend import AdocaoAtend
 from modelos.animal import Animal
 
 router = APIRouter(prefix="/adocoes", tags=["Adoções"])
