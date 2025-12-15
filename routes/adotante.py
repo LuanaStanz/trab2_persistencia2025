@@ -17,13 +17,28 @@ def create_adotante(adotante: Adotante, session: Session = Depends(get_session))
 
 # READ - Listar todos adotantes (paginação)
 @router.get("/")
-def read_adotantes(
-    offset: int = 0,
-    limit: int = Query(default=10, le=100),
-    session: Session = Depends(get_session)
-):
+def read_adotantes(offset: int = 0,limit: int = Query(default=10, le=100),session: Session = Depends(get_session)):
     stmt = select(Adotante).offset(offset).limit(limit)
     return session.exec(stmt).all()
+
+#  c) Buscas por texto parcial - Buscar adotante pelo nome
+@router.get("/buscar/nome")
+def by_name_adotante(nome: str,offset: int = 0,limit: int = 10,session: Session = Depends(get_session)):
+    stmt = (
+        select(Adotante)
+        .where(Adotante.nome.ilike(f"%{nome}%"))
+        .offset(offset)
+        .limit(limit)
+    )
+    return session.exec(stmt).all()
+
+# a) Consultas por ID - Buscar adotante por ID
+@router.get("/{adotante_id}")
+def read_adotante(adotante_id: int, session: Session = Depends(get_session)):
+    adotante = session.get(Adotante, adotante_id)
+    if not adotante:
+        return {"erro": "Adotante não encontrado"}
+    return adotante
 
 # UPDATE
 @router.put("/{adotante_id}")
@@ -50,26 +65,3 @@ def delete_adotante(adotante_id: int, session: Session = Depends(get_session)):
     session.commit()
     return {"ok": True}
 
-# a) Consultas por ID - Buscar adotante por ID
-@router.get("/{adotante_id}")
-def read_adotante(adotante_id: int, session: Session = Depends(get_session)):
-    adotante = session.get(Adotante, adotante_id)
-    if not adotante:
-        return {"erro": "Adotante não encontrado"}
-    return adotante
-
-#  c) Buscas por texto parcial - Buscar adotante pelo nome
-@router.get("/buscar/nome")
-def by_name_adotante(
-    nome: str,
-    offset: int = 0,
-    limit: int = 10,
-    session: Session = Depends(get_session)
-):
-    stmt = (
-        select(Adotante)
-        .where(Adotante.nome.ilike(f"%{nome}%"))
-        .offset(offset)
-        .limit(limit)
-    )
-    return session.exec(stmt).all()
