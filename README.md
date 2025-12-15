@@ -82,48 +82,50 @@ erDiagram
     Atendente ||--o{ AdocaoAtend : "tem"
 ```
 PS: A tabela AdocaoAtend é uma tabela associativa, necessária para representar o relacionamento muitos-para-muitos entre Adocao e Atendente.
+| Entidade   | Método | Rota                             | Descrição |
+|-----------|--------|----------------------------------|-----------|
+| Atendente | POST   | /                                | Cadastrar novo atendente |
+| Atendente | GET    | /                                | Listar todos os atendentes |
+| Atendente | GET    | /buscar/nome                     | Buscar atendente por nome (texto parcial) |
+| Atendente | GET    | /stats/total                     | Quantidade total de atendentes cadastrados |
+| Atendente | GET    | /ordenar/nome                    | Listar atendentes ordenados por nome |
+| Atendente | PUT    | /{atendente_id}                  | Atualizar atendente |
+| Atendente | DELETE | /{atendente_id}                  | Remover atendente |
+| Atendente | GET    | /{atendente_id}                  | Buscar atendente por ID |
+|-----------|--------|----------------------------------|-----------|
+| Animal    | POST   | /                                | Cadastrar novo animal |
+| Animal    | GET    | /                                | Listar todos os animais (com paginação) |
+| Animal    | PUT    | /detalhes/{animal_id}            | Atualizar dados do animal |
+| Animal    | DELETE | /{animal_id}                     | Remover animal |
+| Animal    | GET    | /adotados/adotante               | Listar animais adotados por um adotante |
+| Animal    | GET    | /buscar/nome                     | Buscar animal por nome (texto parcial) |
+| Animal    | GET    | /ano/resgate                     | Listar animais resgatados em determinado ano |
+| Animal    | GET    | /stats/total                     | Quantidade total de animais cadastrados |
+| Animal    | GET    | /stats/adotados/especie          | Quantidade de animais adotados por espécie |
+| Animal    | GET    | /disponiveis/ordenar/idade       | Listar animais disponíveis ordenados por idade |
+| Animal    | GET    | /{animal_id}                     | Buscar animal por ID |
+|-----------|--------|----------------------------------|-----------|
+| Adotante  | POST   | /                                | Cadastrar novo adotante |
+| Adotante  | GET    | /                                | Listar todos os adotantes (paginação) |
+| Adotante  | GET    | /buscar/nome                     | Buscar adotante por nome (texto parcial) |
+| Adotante  | GET    | /{adotante_id}                   | Buscar adotante por ID |
+| Adotante  | PUT    | /{adotante_id}                   | Atualizar adotante |
+| Adotante  | DELETE | /{adotante_id}                   | Remover adotante |
+|-----------|--------|----------------------------------|-----------|
+| Adoção    | POST   | /                                | Registrar nova adoção |
+| Adoção    | GET    | /                                | Listar adoções (com paginação e relacionamentos) |
+| Adoção    | GET    | /canceladas                      | Listar adoções canceladas |
+| Adoção    | GET    | /recentes                        | Listar adoções mais recentes |
+| Adoção    | GET    | /relatorio/completo              | Relatório completo com JOIN explícito |
+| Adoção    | GET    | /detalhes                        | Listar animais adotados com informações completas |
+| Adoção    | PUT    | /{adocao_id}                     | Atualizar adoção |
+| Adoção    | DELETE | /{adocao_id}/hard                | Remover adoção permanentemente |
+| Adoção    | DELETE | /{adocao_id}/cancelar            | Cancelar adoção (Soft Delete) |
+| Adoção    | GET    | /ano/{ano}                       | Listar adoções realizadas em determinado ano |
+| Adoção    | GET    | /id/{adocao_id}                  | Buscar adoção por ID com relacionamentos |
 
-### CRUDs feitos para: adotante, animal, adocao, atendete
-### a) Consultas por ID
-"animal/{animal_id}" - Buscar Animal por ID  
-"adotante/{adotante_id}" - Buscar Adotante por ID  
- "adocao/{adocao_id}" - Buscar Adoção por ID  
-- Buscar Atendente por ID  
-
-### b) Listagens filtradas por relacionamentos
-"animal/adotados/adotante" - Listar todos os animais adotados por um adotante  
-- Listar todas as adoções de um atendente  
-
-### c) Buscas por texto parcial
-"/buscar/nome" - Buscar animais pelo nome (contém texto)  
-"adotante/buscar/nome" - Buscar adotantes pelo nome  
-- Buscar atendente pelo nome  
-"adocao/" - Buscar adoções pela espécie  
-- Buscar adoções pelo status de cancelamento  
-
-### d) Filtros por data / ano
-"adocao/ano/resgate" - Adoções realizadas em determinado ano  
-- Animais resgatados em determinado ano  
-
-### e) Agregações e contagens
-"animal/stats/total" - Quantidade total de animais cadastrados  
-"animal/stats/status/0" - Quantidade total de animais cadastrados com `status_adocao = 0`  
-"animal/stats/status/1" - Quantidade total de animais cadastrados com `status_adocao = 1`  
- "animal/stats/adotados/especie" - Quantidade de animais adotados por espécie  
-- Quantidade total de adoções realizadas  
-- Quantidade de adoções canceladas  
-
-
-### f) Classificações e ordenações
-"animal/disponiveis"- Listar animais por idade (do mais novo ao mais velho)  
-"animal/ordenar/idade" - Listar animais com `status_adocao = 0`  
-- Listar adoções mais recentes  
-
-### g) Consultas complexas envolvendo múltiplas entidades
- - Listar animais com `status_adocao = 1`, exibindo:
-  - Nome do animal, ID do animal, Nome do adotante, ID do adotante, Data da adoção, Nome(s) do(s) atendente(s), ID(s) do(s) atendente(s)
-  ps: as consultas foram implementadas diretamente nas rotas da API, organizadas por entidade, utilizando SQLModel e SQLAlchemy para operações de filtragem, ordenação, agregação e junções entre tabelas.
-
+ps: as consultas foram implementadas diretamente nas rotas da API, organizadas por entidade, utilizando SQLModel e SQLAlchemy para realizar as operações necessárias de filtragem.
+  
 # Estrutura/Pastas do código: 
 ```txt
 trab2_persistencia_2025/
@@ -171,5 +173,7 @@ Adoção ↔ Atendente (via tabela associativa)
 
 ### Divisão de trabalho da Equipe
 Jade - ideia de sistema, modelagem de classe e er, teste da api
+
 Luana - migration, conexão com o 3 banco de dados, teste da api
+
 Maria Beatriz - api, endpoints, povoamento inicial, teste da api
