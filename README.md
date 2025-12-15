@@ -82,48 +82,70 @@ erDiagram
     Atendente ||--o{ AdocaoAtend : "tem"
 ```
 PS: A tabela AdocaoAtend é uma tabela associativa, necessária para representar o relacionamento muitos-para-muitos entre Adocao e Atendente.
-| Entidade   | Método | Rota                             | Descrição |
-|-----------|--------|----------------------------------|-----------|
-| Atendente | POST   | /                                | Cadastrar novo atendente |
-| Atendente | GET    | /                                | Listar todos os atendentes |
-| Atendente | GET    | /buscar/nome                     | Buscar atendente por nome (texto parcial) |
-| Atendente | GET    | /stats/total                     | Quantidade total de atendentes cadastrados |
-| Atendente | GET    | /ordenar/nome                    | Listar atendentes ordenados por nome |
-| Atendente | PUT    | /{atendente_id}                  | Atualizar atendente |
-| Atendente | DELETE | /{atendente_id}                  | Remover atendente |
-| Atendente | GET    | /{atendente_id}                  | Buscar atendente por ID |
-|-----------|--------|----------------------------------|-----------|
-| Animal    | POST   | /                                | Cadastrar novo animal |
-| Animal    | GET    | /                                | Listar todos os animais (com paginação) |
-| Animal    | PUT    | /detalhes/{animal_id}            | Atualizar dados do animal |
-| Animal    | DELETE | /{animal_id}                     | Remover animal |
-| Animal    | GET    | /adotados/adotante               | Listar animais adotados por um adotante |
-| Animal    | GET    | /buscar/nome                     | Buscar animal por nome (texto parcial) |
-| Animal    | GET    | /ano/resgate                     | Listar animais resgatados em determinado ano |
-| Animal    | GET    | /stats/total                     | Quantidade total de animais cadastrados |
-| Animal    | GET    | /stats/adotados/especie          | Quantidade de animais adotados por espécie |
-| Animal    | GET    | /disponiveis/ordenar/idade       | Listar animais disponíveis ordenados por idade |
-| Animal    | GET    | /{animal_id}                     | Buscar animal por ID |
-|-----------|--------|----------------------------------|-----------|
-| Adotante  | POST   | /                                | Cadastrar novo adotante |
-| Adotante  | GET    | /                                | Listar todos os adotantes (paginação) |
-| Adotante  | GET    | /buscar/nome                     | Buscar adotante por nome (texto parcial) |
-| Adotante  | GET    | /{adotante_id}                   | Buscar adotante por ID |
-| Adotante  | PUT    | /{adotante_id}                   | Atualizar adotante |
-| Adotante  | DELETE | /{adotante_id}                   | Remover adotante |
-|-----------|--------|----------------------------------|-----------|
-| Adoção    | POST   | /                                | Registrar nova adoção |
-| Adoção    | GET    | /                                | Listar adoções (com paginação e relacionamentos) |
-| Adoção    | GET    | /canceladas                      | Listar adoções canceladas |
-| Adoção    | GET    | /recentes                        | Listar adoções mais recentes |
-| Adoção    | GET    | /relatorio/completo              | Relatório completo com JOIN explícito |
-| Adoção    | GET    | /detalhes                        | Listar animais adotados com informações completas |
-| Adoção    | PUT    | /{adocao_id}                     | Atualizar adoção |
-| Adoção    | DELETE | /{adocao_id}/hard                | Remover adoção permanentemente |
-| Adoção    | DELETE | /{adocao_id}/cancelar            | Cancelar adoção (Soft Delete) |
-| Adoção    | GET    | /ano/{ano}                       | Listar adoções realizadas em determinado ano |
-| Adoção    | GET    | /id/{adocao_id}                  | Buscar adoção por ID com relacionamentos |
 
+## Animais
+
+| Método | Endpoint | Descrição |
+|------|---------|-----------|
+| POST | `/animais/` | Criar animal |
+| GET | `/animais/` | Listar animais |
+| GET | `/animais/adotados/adotante` | Animais adotados por adotante |
+| GET | `/animais/buscar/nome` | Buscar animal por nome |
+| GET | `/animais/resgatados/ano` | Animais resgatados por ano |
+| GET | `/animais/stats/total` | Total de animais |
+| GET | `/animais/stats/status/0` | Total de animais disponíveis |
+| GET | `/animais/stats/status/1` | Total de animais adotados |
+| GET | `/animais/disponiveis` | Listar animais disponíveis |
+| GET | `/animais/ordenar/idade` | Ordenar animais por idade |
+| GET | `/animais/detalhes` | Animais adotados (com detalhes) |
+| PUT | `/animais/{animal_id}` | Atualizar animal |
+| DELETE | `/animais/{animal_id}` | Deletar animal |
+| GET | `/animais/{animal_id}` | Buscar animal por ID |
+
+---
+
+## Adotantes
+
+| Método | Endpoint | Descrição |
+|------|---------|-----------|
+| POST | `/adotantes/` | Criar adotante |
+| GET | `/adotantes/` | Listar adotantes |
+| GET | `/adotantes/buscar/nome` | Buscar adotante por nome |
+| GET | `/adotantes/{adotante_id}` | Buscar adotante por ID |
+| PUT | `/adotantes/{adotante_id}` | Atualizar adotante |
+| DELETE | `/adotantes/{adotante_id}` | Deletar adotante |
+
+---
+
+## Atendentes
+
+| Método | Endpoint | Descrição |
+|------|---------|-----------|
+| GET | `/atendentes/` | Listar atendentes |
+| POST | `/atendentes/` | Criar atendente |
+| GET | `/atendentes/buscar/nome` | Buscar atendente por nome |
+| PUT | `/atendentes/{atendente_id}` | Atualizar atendente |
+| DELETE | `/atendentes/{atendente_id}` | Deletar atendente |
+| GET | `/atendentes/{atendente_id}` | Buscar atendente por ID |
+
+---
+
+## Adoções
+
+| Método | Endpoint | Descrição |
+|------|---------|-----------|
+| POST | `/adocoes/` | Criar adoção |
+| GET | `/adocoes/` | Listar adoções |
+| GET | `/adocoes/canceladas` | Adoções canceladas |
+| GET | `/adocoes/recentes` | Adoções mais recentes |
+| GET | `/adocoes/relatorio/completo/ordenados` | Relatório completo de adoções |
+| PUT | `/adocoes/{adocao_id}` | Atualizar adoção |
+| DELETE | `/adocoes/{adocao_id}/hard` | Deletar adoção (hard delete) |
+| DELETE | `/adocoes/{adocao_id}/cancelar` | Cancelar adoção (soft delete) |
+| GET | `/adocoes/ano/{ano}` | Adoções por ano |
+| GET | `/adocoes/id/{adocao_id}` | Buscar adoção por ID |
+
+---
 ps: as consultas foram implementadas diretamente nas rotas da API, organizadas por entidade, utilizando SQLModel e SQLAlchemy para realizar as operações necessárias de filtragem.
   
 # Estrutura/Pastas do código: 
@@ -171,9 +193,21 @@ Adotante → Adoção
 N:M
 Adoção ↔ Atendente (via tabela associativa)
 
+## Como Executar
+```bash
+# Ativar ambiente virtual
+source .venv/bin/activate
+
+# Instalar dependências
+uv sync
+
+# Executar a aplicação
+uvicorn main:app --reload
+```
+
 ### Divisão de trabalho da Equipe
 Jade - ideia de sistema, modelagem de classe e er, teste da api
 
-Luana - migration, conexão com o 3 banco de dados, teste da api
+Luana - migration, conexão com o 3 banco de dados, endpoints, teste da api
 
 Maria Beatriz - api, endpoints, povoamento inicial, teste da api
