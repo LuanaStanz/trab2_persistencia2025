@@ -4,6 +4,8 @@ from typing import List
 from datetime import date
 from database import get_session
 from modelos.animal import Animal, AnimalBase
+from modelos.adocao import Adocao
+from modelos.adotante import Adotante
 
 router = APIRouter(prefix="/animais", tags=["Animais"])
 
@@ -93,7 +95,6 @@ def estatisticas_animais(session: Session = Depends(get_session)):
         "disponiveis": disponiveis,
         "adotados": adotados
     }
-    
 @router.get("/ordenados/idade", response_model=List[Animal])
 def listar_animais_por_idade(
     session: Session = Depends(get_session)
@@ -102,3 +103,47 @@ def listar_animais_por_idade(
     query = select(Animal).order_by(Animal.idade.asc())
     return session.exec(query).all()
 
+@router.get("/animais/adotados/detalhes")
+def listar_animais_adotados_detalhes(
+    session: Session = Depends(get_session)
+):
+    """
+    Consulta complexa envolvendo múltiplas entidades:
+    Animal, Adoção, Adotante e Atendentes
+    """
+
+    query = (
+        select(Adocao, Animal, Adotante)
+        .join(Animal)
+        .join(Adotante)
+        .where(Animal.status_adocao == True)
+    )
+
+    resultados = session.exec(query).all()
+
+    resposta = []
+
+    for adocao, animal, adotante in resultados:
+        atendentes = [
+            {
+                "id_atendente": link.atendente.id_atendente,
+                "nome_atendente": link.atendente.nome
+            }
+            for link in adocao.atendentes
+            if link.atendente
+        ]
+
+        resposta.append({
+            "animal": {
+                "id": animal.id_animal,
+                "nome": animal.nome
+            },
+            "adotante": {
+                "id": adotante.id_adotante,
+                "nome": adotante.nome
+            },
+            "data_adocao": adocao.data_adocao,
+            "atendentes": atendentes
+        })
+
+    return resposta
