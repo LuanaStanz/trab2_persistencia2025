@@ -83,35 +83,40 @@ erDiagram
 ```
 PS: A tabela AdocaoAtend é uma tabela associativa, necessária para representar o relacionamento muitos-para-muitos entre Adocao e Atendente.
 
-
-# Consultas Planejadas
+### CRUDs feitos para: adotante, animal
 ### a) Consultas por ID
-- Buscar Animal por ID  
-- Buscar Adotante por ID  
-- Buscar Adoção por ID  
+"animal/{animal_id}" - Buscar Animal por ID  
+"adotante/{adotante_id}" - Buscar Adotante por ID  
+ - Buscar Adoção por ID  
 - Buscar Atendente por ID  
 
 ### b) Listagens filtradas por relacionamentos
-- Listar todos os animais adotados por um adotante  
-- Listar todas as adoções de um animal  
+"animal/adotados/adotante" - Listar todos os animais adotados por um adotante  
 - Listar todas as adoções de um atendente  
 
 ### c) Buscas por texto parcial
 - Buscar animais pelo nome (contém texto)  
-- Buscar adotantes pelo nome  
+"adotante/buscar/nome" - Buscar adotantes pelo nome  
 - Buscar atendente pelo nome  
 - Buscar adoções pela espécie  
 - Buscar adoções pelo status de cancelamento  
 
 ### d) Filtros por data / ano
-- Adoções realizadas em determinado ano  
+"adocao/ano/resgate" - Adoções realizadas em determinado ano  
 - Animais resgatados em determinado ano  
 
 ### e) Agregações e contagens
-- Quantidade total de animais cadastrados  
+"animal/stats/status/0" - Quantidade total de animais cadastrados  
+- Quantidade total de animais cadastrados com `status_adocao = 0`  
+- Quantidade total de animais cadastrados com `status_adocao = 1`  
+- Quantidade total de adoções realizadas  
+- Quantidade de adoções canceladas  
+- Quantidade de animais adotados por espécie  
 
 ### f) Classificações e ordenações
 - Listar animais por idade (do mais novo ao mais velho)  
+- Listar animais com `status_adocao = 0`  
+- Listar adoções mais recentes  
 
 ### g) Consultas complexas envolvendo múltiplas entidades
 - Listar animais com `status_adocao = 1`, exibindo:
@@ -120,8 +125,9 @@ PS: A tabela AdocaoAtend é uma tabela associativa, necessária para representar
   - Nome do adotante  
   - ID do adotante  
   - Data da adoção  
-  - Nome(s) do(s) atendente(s)  
+  - Nome(s) do(s) atendente(s) 
   - ID(s) do(s) atendente(s)
+
   ps: as consultas foram implementadas diretamente nas rotas da API, organizadas por entidade, utilizando SQLModel e SQLAlchemy para operações de filtragem, ordenação, agregação e junções entre tabelas.
 
 # Estrutura/Pastas do código: 
