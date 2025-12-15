@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI #uvicorn main:app --reload
 from contextlib import asynccontextmanager
 from database import engine
 from routes import animal,adotante,atendente,adocao

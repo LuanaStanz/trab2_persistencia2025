@@ -1,68 +1,76 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import Session, select, func
-from typing import List
+from fastapi import APIRouter, Depends, Query, HTTPException
+from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 from database import get_session
-from modelos.atendente import Atendente, AtendenteBase
+from modelos.atendente import Atendente
 
 router = APIRouter(prefix="/atendentes", tags=["Atendentes"])
 
-# --- CREATE ---
-@router.post("/", response_model=Atendente, status_code=201)
-def criar_atendente(atendente: AtendenteBase, session: Session = Depends(get_session)):
-    db_atendente = Atendente.model_validate(atendente)
-    session.add(db_atendente)
-    try:
-        session.commit()
-        session.refresh(db_atendente)
-        return db_atendente
-    except Exception as e:
-        session.rollback()
-        raise HTTPException(status_code=500, detail=f"Erro ao criar atendente: {e}")
 
-# --- READ (Listar com Filtro de Nome) ---
-@router.get("/", response_model=List[Atendente])
-def listar_atendentes(
-    session: Session = Depends(get_session),
-    nome: str | None = Query(None, description="Filtrar por nome parcial")
-):
-    query = select(Atendente)
-    
-    if nome:
-        query = query.where(func.lower(Atendente.nome).contains(nome.lower()))
-        
-    return session.exec(query).all()
-
-# --- READ (Por ID) ---
-@router.get("/{atendente_id}", response_model=Atendente)
-def obter_atendente(atendente_id: int, session: Session = Depends(get_session)):
+# Buscar atendente por ID
+@router.get("/{atendente_id}")
+def get_atendente(atendente_id: int, session: Session = Depends(get_session)):
     atendente = session.get(Atendente, atendente_id)
     if not atendente:
-        raise HTTPException(status_code=404, detail="Atendente não encontrado")
+        return {"erro": "Atendente não encontrado"}
     return atendente
 
-# --- UPDATE ---
-@router.patch("/{atendente_id}", response_model=Atendente)
-def atualizar_atendente(atendente_id: int, atendente_data: AtendenteBase, session: Session = Depends(get_session)):
+
+# Listar atendentes
+@router.get("/")
+def listar_atendentes(
+    offset: int = 0,
+    limit: int = Query(default=10, le=100),
+    session: Session = Depends(get_session)
+):
+    stmt = select(Atendente).offset(offset).limit(limit)
+    return session.exec(stmt).all()
+
+
+# Buscar atendente pelo nome
+@router.get("/buscar/nome")
+def buscar_atendente_nome(
+    nome: str,
+    offset: int = 0,
+    limit: int = 10,
+    session: Session = Depends(get_session)
+):
+    stmt = (
+        select(Atendente)
+        .where(Atendente.nome.ilike(f"%{nome}%"))
+        .offset(offset)
+        .limit(limit)
+    )
+    return session.exec(stmt).all()
+
+@router.post("/")
+def create_atendente(atendente: Atendente, session: Session = Depends(get_session)):
+    session.add(atendente)
+    session.commit()
+    session.refresh(atendente)
+    return atendente
+
+
+@router.put("/{atendente_id}")
+def update_atendente(atendente_id: int, atendente: Atendente, session: Session = Depends(get_session)):
     db_atendente = session.get(Atendente, atendente_id)
     if not db_atendente:
         raise HTTPException(status_code=404, detail="Atendente não encontrado")
-    
-    dados = atendente_data.model_dump(exclude_unset=True)
-    for key, value in dados.items():
-        setattr(db_atendente, key, value)
 
-    session.add(db_atendente)
+    for k, v in atendente.model_dump(exclude_unset=True).items():
+        setattr(db_atendente, k, v)
+
     session.commit()
     session.refresh(db_atendente)
     return db_atendente
 
-# --- DELETE ---
+
 @router.delete("/{atendente_id}")
-def deletar_atendente(atendente_id: int, session: Session = Depends(get_session)):
-    db_atendente = session.get(Atendente, atendente_id)
-    if not db_atendente:
+def delete_atendente(atendente_id: int, session: Session = Depends(get_session)):
+    atendente = session.get(Atendente, atendente_id)
+    if not atendente:
         raise HTTPException(status_code=404, detail="Atendente não encontrado")
-    
-    session.delete(db_atendente)
+
+    session.delete(atendente)
     session.commit()
-    return {"message": "Atendente removido com sucesso"}
+    return {"ok": True}

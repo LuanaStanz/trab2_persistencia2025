@@ -1,149 +1,131 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import Session, select, func
-from typing import List
-from datetime import date
+from fastapi import APIRouter, Depends, Query, HTTPException
+from sqlmodel import Session, select
+from sqlalchemy import func, extract
+from sqlalchemy.orm import selectinload
 from database import get_session
-from modelos.animal import Animal, AnimalBase
+from modelos.animal import Animal
 from modelos.adocao import Adocao
-from modelos.adotante import Adotante
 
 router = APIRouter(prefix="/animais", tags=["Animais"])
 
-# --- CREATE (Criar Animal) ---
-@router.post("/", response_model=Animal, status_code=201)
-def criar_animal(animal: AnimalBase, session: Session = Depends(get_session)):
-    db_animal = Animal.model_validate(animal)
-    session.add(db_animal)
-    try:
-        session.commit()
-        session.refresh(db_animal)
-        return db_animal
-    except Exception as e:
-        session.rollback()
-        raise HTTPException(status_code=500, detail=f"Erro ao criar animal: {e}")
 
-# --- READ (Listar com Filtros e Ordenação) ---
-@router.get("/", response_model=List[Animal])
-def listar_animais(
-    session: Session = Depends(get_session),
-    nome: str | None = Query(None, description="Filtro: Nome parcial"),
-    ano_resgate: int | None = Query(None, description="Filtro: Ano de resgate"),
-    status_adocao: bool | None = Query(None, description="Filtro: Status (True=Adotado, False=Disponível)"),
-    ordenar_por_idade: bool = Query(False, description="Ordenar do mais novo ao mais velho")
-):
-    query = select(Animal)
-
-    if nome:
-        query = query.where(func.lower(Animal.nome).contains(nome.lower()))
-    
-    if ano_resgate:
-        start_date = date(ano_resgate, 1, 1)
-        end_date = date(ano_resgate, 12, 31)
-        query = query.where(Animal.data_resgate >= start_date, Animal.data_resgate <= end_date)
-
-    if status_adocao is not None:
-        query = query.where(Animal.status_adocao == status_adocao)
-
-    if ordenar_por_idade:
-        query = query.order_by(Animal.idade)
-
-    return session.exec(query).all()
-
-# --- READ (Buscar por ID) ---
-@router.get("/{animal_id}", response_model=Animal)
-def obter_animal(animal_id: int, session: Session = Depends(get_session)):
-    animal = session.get(Animal, animal_id)
-    if not animal:
-        raise HTTPException(status_code=404, detail="Animal não encontrado")
+# CREATE
+@router.post("/")
+def create_animal(animal: Animal, session: Session = Depends(get_session)):
+    session.add(animal)
+    session.commit()
+    session.refresh(animal)
     return animal
 
-# --- UPDATE  ---
-@router.patch("/{animal_id}", response_model=Animal)
-def atualizar_animal(animal_id: int, animal_data: AnimalBase, session: Session = Depends(get_session)):
+# READ - Listar todos (com paginação)
+@router.get("/")
+def listar_animais(
+    offset: int = 0,
+    limit: int = Query(default=10, le=100),
+    session: Session = Depends(get_session)
+):
+    stmt = select(Animal).offset(offset).limit(limit)
+    return session.exec(stmt).all()
+
+# UPDATE
+@router.put("/{animal_id}")
+def update_animal(animal_id: int, animal: Animal, session: Session = Depends(get_session)):
     db_animal = session.get(Animal, animal_id)
     if not db_animal:
         raise HTTPException(status_code=404, detail="Animal não encontrado")
-    
-    dados = animal_data.model_dump(exclude_unset=True)
-    for key, value in dados.items():
-        setattr(db_animal, key, value)
 
-    session.add(db_animal)
+    for k, v in animal.model_dump(exclude_unset=True).items():
+        setattr(db_animal, k, v)
+
     session.commit()
     session.refresh(db_animal)
     return db_animal
 
-# --- DELETE  ---
+# DELETE
 @router.delete("/{animal_id}")
-def deletar_animal(animal_id: int, session: Session = Depends(get_session)):
-    db_animal = session.get(Animal, animal_id)
-    if not db_animal:
+def delete_animal(animal_id: int, session: Session = Depends(get_session)):
+    animal = session.get(Animal, animal_id)
+    if not animal:
         raise HTTPException(status_code=404, detail="Animal não encontrado")
-    
-    session.delete(db_animal)
+
+    session.delete(animal)
     session.commit()
-    return {"message": "Animal removido com sucesso"}
+    return {"ok": True}
 
-@router.get("/stats/contagem")
-def estatisticas_animais(session: Session = Depends(get_session)):
-    total = session.exec(select(func.count(Animal.id_animal))).one()
-    disponiveis = session.exec(select(func.count(Animal.id_animal)).where(Animal.status_adocao == False)).one()
-    adotados = session.exec(select(func.count(Animal.id_animal)).where(Animal.status_adocao == True)).one()
-    
-    return {
-        "total_animais": total,
-        "disponiveis": disponiveis,
-        "adotados": adotados
-    }
-@router.get("/ordenados/idade", response_model=List[Animal])
-def listar_animais_por_idade(
+# a) Consultas por ID - Buscar Animal por ID
+@router.get("/{animal_id}")
+def animal_by_id(animal_id: int, session: Session = Depends(get_session)):
+    animal = session.get(Animal, animal_id)
+    if not animal:
+        return {"erro": "Animal não encontrado"}
+    return animal
+
+# b) Listagens filtradas por relacionamentos - Listar todos os animais adotados por um adotante  
+@router.get("/adotados/adotante")
+def animal_by_adotante(
+    adotante_id: int,
+    offset: int = 0,
+    limit: int = Query(default=10, le=100),
     session: Session = Depends(get_session)
 ):
-    # Do mais novo (menor idade) para o mais velho (maior idade)
-    query = select(Animal).order_by(Animal.idade.asc())
-    return session.exec(query).all()
-
-@router.get("/animais/adotados/detalhes")
-def listar_animais_adotados_detalhes(
-    session: Session = Depends(get_session)
-):
-    """
-    Consulta complexa envolvendo múltiplas entidades:
-    Animal, Adoção, Adotante e Atendentes
-    """
-
-    query = (
-        select(Adocao, Animal, Adotante)
-        .join(Animal)
-        .join(Adotante)
-        .where(Animal.status_adocao == True)
+    stmt = (
+        select(Animal)
+        .join(Adocao)
+        .where(Adocao.adotante_id == adotante_id)
+        .offset(offset)
+        .limit(limit)
     )
+    return session.exec(stmt).all()
 
-    resultados = session.exec(query).all()
+# c) Buscas por texto parcial - Buscar animal pelo nome
+@router.get("/buscar/nome")
+def animal_by_name(
+    nome: str,
+    offset: int = 0,
+    limit: int = 10,
+    session: Session = Depends(get_session)
+):
+    stmt = (
+        select(Animal)
+        .where(Animal.nome.ilike(f"%{nome}%"))
+        .offset(offset)
+        .limit(limit)
+    )
+    return session.exec(stmt).all()
 
-    resposta = []
+# d) Filtros por data / ano - Animais resgatados em determinado ano  
+@router.get("/ano/resgate")
+def animais_por_ano(
+    ano: int,
+    session: Session = Depends(get_session)
+):
+    stmt = select(Animal).where(extract("year", Animal.data_resgate) == ano)
+    return session.exec(stmt).all()
 
-    for adocao, animal, adotante in resultados:
-        atendentes = [
-            {
-                "id_atendente": link.atendente.id_atendente,
-                "nome_atendente": link.atendente.nome
-            }
-            for link in adocao.atendentes
-            if link.atendente
-        ]
+# e) Agregações e contagens - Quantidade total de animais cadastrados  
+@router.get("/stats/total")
+def total_animais(session: Session = Depends(get_session)):
+    stmt = select(func.count(Animal.id_animal))
+    return session.exec(stmt).one()
+# e) Agregações e contagens - Quantidade total de animais cadastrados com `status_adocao = 0`  
+# e) Agregações e contagens - Quantidade total de animais cadastrados com `status_adocao = 1`  
+# e) Agregações e contagens - Quantidade de animais adotados por espécie  
+# f) Classificações e ordenações - Listar animais com `status_adocao = 0`  
 
-        resposta.append({
-            "animal": {
-                "id": animal.id_animal,
-                "nome": animal.nome
-            },
-            "adotante": {
-                "id": adotante.id_adotante,
-                "nome": adotante.nome
-            },
-            "data_adocao": adocao.data_adocao,
-            "atendentes": atendentes
-        })
 
-    return resposta
+#  f) Classificações e ordenações - Listar animais ordenados por idade
+@router.get("/ordenar/idade")
+def ordenar_por_idade(
+    status: int | None = None,
+    offset: int = 0,
+    limit: int = 10,
+    session: Session = Depends(get_session)
+):
+    stmt = select(Animal)
+    if status is not None:
+        stmt = stmt.where(Animal.status_adocao == status)
+    stmt = stmt.order_by(Animal.idade.asc()).offset(offset).limit(limit)
+    return session.exec(stmt).all()
+
+
+
