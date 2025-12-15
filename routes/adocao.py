@@ -107,3 +107,101 @@ def listar_adocoes_detalhadas(session: Session = Depends(get_session)):
         })
     
     return lista_detalhada
+@router.get("/{id_adocao}", response_model=Adocao)
+def buscar_adocao_por_id(
+    id_adocao: int,
+    session: Session = Depends(get_session)
+):
+    adocao = session.get(Adocao, id_adocao)
+    if not adocao:
+        raise HTTPException(status_code=404, detail="Adoção não encontrada")
+    return adocao
+
+@router.put("/{id_adocao}", response_model=Adocao)
+def atualizar_adocao(
+    id_adocao: int,
+    adocao_in: AdocaoCreate,
+    session: Session = Depends(get_session)
+):
+    adocao = session.get(Adocao, id_adocao)
+    if not adocao:
+        raise HTTPException(status_code=404, detail="Adoção não encontrada")
+
+    # Valida Animal
+    animal = session.get(Animal, adocao_in.id_animal)
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal não encontrado")
+
+    # Valida Adotante
+    adotante = session.get(Adotante, adocao_in.id_adotante)
+    if not adotante:
+        raise HTTPException(status_code=404, detail="Adotante não encontrado")
+
+    # Valida Atendentes
+    for id_atend in adocao_in.ids_atendentes:
+        if not session.get(Atendente, id_atend):
+            raise HTTPException(
+                status_code=404,
+                detail=f"Atendente {id_atend} não encontrado"
+            )
+
+    try:
+        # Atualiza dados da adoção
+        dados = adocao_in.model_dump(exclude={"ids_atendentes"})
+        for campo, valor in dados.items():
+            setattr(adocao, campo, valor)
+
+        # Remove vínculos antigos
+        for link in adocao.atendentes:
+            session.delete(link)
+
+        # Cria novos vínculos
+        for id_atend in adocao_in.ids_atendentes:
+            session.add(
+                AdocaoAtend(
+                    id_adocao=id_adocao,
+                    id_atendente=id_atend
+                )
+            )
+
+        session.add(adocao)
+        session.commit()
+        session.refresh(adocao)
+        return adocao
+
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao atualizar adoção: {e}"
+        )
+
+@router.delete("/{id_adocao}", status_code=204)
+def deletar_adocao(
+    id_adocao: int,
+    session: Session = Depends(get_session)
+):
+    adocao = session.get(Adocao, id_adocao)
+    if not adocao:
+        raise HTTPException(status_code=404, detail="Adoção não encontrada")
+
+    try:
+        # Volta o status do animal
+        animal = session.get(Animal, adocao.id_animal)
+        if animal:
+            animal.status_adocao = False
+            session.add(animal)
+
+        # Remove vínculos N:N
+        for link in adocao.atendentes:
+            session.delete(link)
+
+        session.delete(adocao)
+        session.commit()
+
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao deletar adoção: {e}"
+        )
