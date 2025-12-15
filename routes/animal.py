@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlmodel import Session, select
 from sqlalchemy import func, extract
-from sqlalchemy.orm import selectinload
 from database import get_session
 from modelos.animal import Animal
 from modelos.adocao import Adocao
@@ -46,14 +45,6 @@ def delete_animal(animal_id: int, session: Session = Depends(get_session)):
     session.delete(animal)
     session.commit()
     return {"ok": True}
-
-# a) Consultas por ID - Buscar Animal por ID
-@router.get("/{animal_id}")
-def animal_by_id(animal_id: int, session: Session = Depends(get_session)):
-    animal = session.get(Animal, animal_id)
-    if not animal:
-        return {"erro": "Animal não encontrado"}
-    return animal
 
 # b) Listagens filtradas por relacionamentos - Listar todos os animais adotados por um adotante  
 @router.get("/adotados/adotante")
@@ -108,3 +99,11 @@ def animais_disponiveis(session: Session = Depends(get_session)):
         .order_by(Animal.idade)
     )
     return session.exec(p).all()
+    
+# a) Consultas por ID - Buscar Animal por ID
+@router.get("/{animal_id}")
+def animal_by_id(animal_id: int, session: Session = Depends(get_session)):
+    animal = session.get(Animal, animal_id)
+    if not animal:
+        raise HTTPException(status_code=404, detail="Animal não encontrado")
+    return animal
