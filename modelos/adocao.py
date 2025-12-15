@@ -28,4 +28,3 @@ class AdocaoAtend(SQLModel, table=True):
 
     adocao: "Adocao" = Relationship(back_populates="atendentes")
     atendente: "Atendente" = Relationship(back_populates="adocao_links")
-

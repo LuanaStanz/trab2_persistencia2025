@@ -1,69 +1,80 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlmodel import Session, select
-from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 from database import get_session
-from modelos.atendente import Atendente
-from modelos.adocao import Adocao
-from modelos.adocao_atend import AdocaoAtend
+from modelos.atendente import Atendente, AtendenteBase
+from modelos.adocao import AdocaoAtend
 
 router = APIRouter(prefix="/atendentes", tags=["Atendentes"])
 
-@router.post("/")
-def create_atendente(atendente: Atendente, session: Session = Depends(get_session)):
-    session.add(atendente)
-    session.commit()
-    session.refresh(atendente)
-    return atendente
-
+# Listar atendentes
 @router.get("/")
-def listar_atendentes(offset: int = 0, limit: int = Query(default=10, le=100), session: Session = Depends(get_session)):
-    return session.exec(select(Atendente).offset(offset).limit(limit)).all()
+def listar_atendentes(
+    offset: int = 0,
+    limit: int = Query(default=10, le=100),
+    session: Session = Depends(get_session)
+):
+    stmt = select(Atendente).offset(offset).limit(limit)
+    return session.exec(stmt).all()
+
 
 # Buscar atendente pelo nome
 @router.get("/buscar/nome")
-def buscar_atendente_nome(nome: str,offset: int = 0,limit: int = 10,session: Session = Depends(get_session)):
-    p = (
+def buscar_atendente_nome(
+    nome: str,
+    offset: int = 0,
+    limit: int = 10,
+    session: Session = Depends(get_session)
+):
+    stmt = (
         select(Atendente)
         .where(Atendente.nome.ilike(f"%{nome}%"))
         .offset(offset)
         .limit(limit)
     )
-    return session.exec(p).all()
+    return session.exec(stmt).all()
 
- # Quantidade total de atendentes cadastrados
-@router.get("/stats/total")
-def total_atendentes(session: Session = Depends(get_session)):
-    p = select(func.count(Atendente.id_atendente))
-    return session.exec(p).one()
+@router.post("/")
+def create_atendente(atendente: AtendenteBase, session: Session = Depends(get_session)):
+    novo = Atendente(**atendente.model_dump())
+    session.add(novo)
+    session.commit()
+    session.refresh(novo)
+    return novo
 
-@router.get("/ordenar/nome")
-def ordenar_atendentes_nome(offset: int = 0,limit: int = Query(default=10, le=100),session: Session = Depends(get_session)):
-    p = (
-        select(Atendente)
-        .order_by(Atendente.nome.asc())
-        .offset(offset)
-        .limit(limit)
-    )
-    return session.exec(p).all()
 
 @router.put("/{atendente_id}")
-def update_atendente(atendente_id: int, atendente: Atendente, session: Session = Depends(get_session)):
+def update_atendente(atendente_id: int, atendente: AtendenteBase, session: Session = Depends(get_session)):
     db_atendente = session.get(Atendente, atendente_id)
     if not db_atendente:
         raise HTTPException(status_code=404, detail="Atendente não encontrado")
 
-    for k, v in atendente.model_dump(exclude_unset=True).items():
-        setattr(db_atendente, k, v)
+    dados = atendente.model_dump()
+    dados.pop("id_atendente", None)
+
+    for campo, valor in dados.items():
+        setattr(db_atendente, campo, valor)
 
     session.commit()
     session.refresh(db_atendente)
     return db_atendente
+
 
 @router.delete("/{atendente_id}")
 def delete_atendente(atendente_id: int, session: Session = Depends(get_session)):
     atendente = session.get(Atendente, atendente_id)
     if not atendente:
         raise HTTPException(status_code=404, detail="Atendente não encontrado")
+
+    existe = session.exec( 
+        select(AdocaoAtend).where(AdocaoAtend.id_atendente == atendente_id)
+    ).first()
+
+    if existe:
+        raise HTTPException(
+            status_code=400,
+            detail="Atendente possui atendimentos registrados e não pode ser removido"
+        )
 
     session.delete(atendente)
     session.commit()
