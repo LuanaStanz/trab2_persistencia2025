@@ -10,20 +10,7 @@ from modelos.atendente import Atendente
 
 router = APIRouter(prefix="/adocoes", tags=["Adoções"])
 
-# Buscar adoção por ID (com relacionamentos)
-@router.get("/{adocao_id}")
-def get_adocao(adocao_id: int, session: Session = Depends(get_session)):
-    stmt = (
-        select(Adocao)
-        .where(Adocao.id_adocao == adocao_id)
-        .options(
-            selectinload(Adocao.animal),
-            selectinload(Adocao.adotante),
-            selectinload(Adocao.atendente),
-        )
-    )
-    return session.exec(stmt).first()
-
+# CREATE
 @router.post("/")
 def create_adocao(adocao: Adocao, session: Session = Depends(get_session)):
     session.add(adocao)
@@ -31,33 +18,7 @@ def create_adocao(adocao: Adocao, session: Session = Depends(get_session)):
     session.refresh(adocao)
     return adocao
 
-
-@router.put("/{adocao_id}")
-def update_adocao(adocao_id: int, adocao: Adocao, session: Session = Depends(get_session)):
-    db_adocao = session.get(Adocao, adocao_id)
-    if not db_adocao:
-        raise HTTPException(status_code=404, detail="Adoção não encontrada")
-
-    for k, v in adocao.model_dump(exclude_unset=True).items():
-        setattr(db_adocao, k, v)
-
-    session.commit()
-    session.refresh(db_adocao)
-    return db_adocao
-
-
-@router.delete("/{adocao_id}")
-def cancelar_adocao(adocao_id: int, session: Session = Depends(get_session)):
-    adocao = session.get(Adocao, adocao_id)
-    if not adocao:
-        raise HTTPException(status_code=404, detail="Adoção não encontrada")
-
-    adocao.cancelamento = True
-    session.commit()
-    return {"ok": True, "cancelada": True}
-
-
-# Listar adoções (paginação + eager loading)
+# READ - Listar todos (com paginação + selectinload)
 @router.get("/")
 def listar_adocoes(
     offset: int = 0,
@@ -76,13 +37,50 @@ def listar_adocoes(
     )
     return session.exec(stmt).all()
 
+# UPDATE
+@router.put("/{adocao_id}")
+def update_adocao(adocao_id: int, adocao: Adocao, session: Session = Depends(get_session)):
+    db_adocao = session.get(Adocao, adocao_id)
+    if not db_adocao:
+        raise HTTPException(status_code=404, detail="Adoção não encontrada")
+
+    for k, v in adocao.model_dump(exclude_unset=True).items():
+        setattr(db_adocao, k, v)
+
+    session.commit()
+    session.refresh(db_adocao)
+    return db_adocao
+
+# DELETE
+@router.delete("/{adocao_id}")
+def cancelar_adocao(adocao_id: int, session: Session = Depends(get_session)):
+    adocao = session.get(Adocao, adocao_id)
+    if not adocao:
+        raise HTTPException(status_code=404, detail="Adoção não encontrada")
+
+    adocao.cancelamento = True
+    session.commit()
+    return {"ok": True, "cancelada": True}
+
+# a/g) Consultas por ID - Buscar adoção por ID (com relacionamentos + selectinload)
+@router.get("/{adocao_id}")
+def get_adocao(adocao_id: int, session: Session = Depends(get_session)):
+    stmt = (
+        select(Adocao)
+        .where(Adocao.id_adocao == adocao_id)
+        .options(
+            selectinload(Adocao.animal),
+            selectinload(Adocao.adotante),
+            selectinload(Adocao.atendente),
+        )
+    )
+    return session.exec(stmt).first()
 
 # Adoções por ano
 @router.get("/ano")
 def adocoes_por_ano(ano: int, session: Session = Depends(get_session)):
     stmt = select(Adocao).where(extract("year", Adocao.data_adocao) == ano)
     return session.exec(stmt).all()
-
 
 # Adoções canceladas
 @router.get("/canceladas")
@@ -120,41 +118,6 @@ def adocoes_recentes(
 # Consulta complexa (JOIN explícito – relatório)
 @router.get("/relatorio/completo")
 def relatorio_adocoes(session: Session = Depends(get_session)):
-    stmt = (
-        select(
-            Animal.nome.label("nome_animal"),
-            Animal.id_animal,
-            Adotante.nome.label("nome_adotante"),
-            Adotante.id_adotante,
-            Adocao.data_adocao,
-            Atendente.nome.label("nome_atendente"),
-            Atendente.id_atendente
-        )
-        .join(Adocao, Adocao.animal_id == Animal.id_animal)
-        .join(Adotante, Adotante.id_adotante == Adocao.adotante_id)
-        .join(Atendente, Atendente.id_atendente == Adocao.atendente_id)
-        .where(Animal.status_adocao == 1)
-    )
-    return session.exec(stmt).all()
+)
 
-@router.get("/{adocao_id}/detalhada")
-def get_adocao_detalhada(
-    adocao_id: int,
-    session: Session = Depends(get_session)
-):
-    stmt = (
-        select(Adocao)
-        .where(Adocao.id_adocao == adocao_id)
-        .options(
-            joinedload(Adocao.animal),
-            joinedload(Adocao.adotante),
-            joinedload(Adocao.atendente),
-        )
-    )
-
-    adocao = session.exec(stmt).first()
-
-    if not adocao:
-        raise HTTPException(status_code=404, detail="Adoção não encontrada")
-
-    return adocao
+# g) Consultas complexas envolvendo múltiplas entidades - Listar animais com `status_adocao = 1`, exibindo todas informações relacionadas a esse animal
