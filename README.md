@@ -4,38 +4,51 @@ Este projeto implementa uma API REST para gerenciamento de um sistema de adoçã
 ```mermaid
 classDiagram
     direction LR
-    class Animal {
-        id_animal: int
-        nome: str
-        especie: str
-        idade: int
-        data_resgate: date
-        status_adocao: str
+
+    class Atendente {
+        +ObjectId id
+        +string nome
+        +string email
+        +string telefone
+        +datetime criado_em
+    }
+
+    class Endereco {
+        +string rua
+        +int numero
+        +string cidade
     }
 
     class Adotante {
-        id_adotante: int
-        nome: str
-        contato: str
-        endereco: str
-        preferencias: str
+        +ObjectId id
+        +string nome
+        +string cpf
+        +string telefone
+        +datetime criado_em
+    }
+
+    class Animal {
+        +ObjectId id
+        +string nome
+        +string especie
+        +string raca
+        +int idade
+        +string sexo
+        +string status
+        +datetime criado_em
     }
 
     class Adocao {
-        id_adocao: int
-        data_adocao: date
-        descricao: str
-        cancelamento: bool
+        +ObjectId id
+        +datetime data_adocao
+        +string observacoes
     }
 
-    class Atendente {
-        id_atendente: int
-        nome: str
-    }
-
-    Animal "1" -- "*" Adocao 
-    Adotante "1" -- "*" Adocao
-    Adocao "*" -- "*" Atendente 
+    %% Cardinalidades
+    Adotante "1" *-- "1" Endereco : possui
+    Adotante "1" --> "0..N" Adocao : realiza
+    Animal "1" --> "0..N" Adocao : participa
+    Atendente "1" --> "0..N" Adocao : registra
 ```
 
 # Diagrama ER:
@@ -87,20 +100,12 @@ PS: A tabela AdocaoAtend é uma tabela associativa, necessária para representar
 
 | Método | Endpoint | Descrição |
 |------|---------|-----------|
-| POST | `/animais/` | Criar animal |
-| GET | `/animais/` | Listar animais |
-| GET | `/animais/adotados/adotante` | Animais adotados por adotante |
-| GET | `/animais/buscar/nome` | Buscar animal por nome |
-| GET | `/animais/resgatados/ano` | Animais resgatados por ano |
-| GET | `/animais/stats/total` | Total de animais |
 | GET | `/animais/stats/status/0` | Total de animais disponíveis |
 | GET | `/animais/stats/status/1` | Total de animais adotados |
-| GET | `/animais/disponiveis` | Listar animais disponíveis |
-| GET | `/animais/ordenar/idade` | Ordenar animais por idade |
 | GET | `/animais/detalhes` | Animais adotados (com detalhes) |
 | PUT | `/animais/{animal_id}` | Atualizar animal |
 | DELETE | `/animais/{animal_id}` | Deletar animal |
-| GET | `/animais/{animal_id}` | Buscar animal por ID |
+
 
 ---
 
@@ -134,14 +139,9 @@ PS: A tabela AdocaoAtend é uma tabela associativa, necessária para representar
 
 | Método | Endpoint | Descrição |
 |------|---------|-----------|
-| POST | `/adocoes/` | Criar adoção |
 | GET | `/adocoes/` | Listar adoções |
-| GET | `/adocoes/canceladas` | Adoções canceladas |
-| GET | `/adocoes/recentes` | Adoções mais recentes |
 | GET | `/adocoes/relatorio/completo/ordenados` | Relatório completo de adoções |
 | PUT | `/adocoes/{adocao_id}` | Atualizar adoção |
-| DELETE | `/adocoes/{adocao_id}/hard` | Deletar adoção (hard delete) |
-| DELETE | `/adocoes/{adocao_id}/cancelar` | Cancelar adoção (soft delete) |
 | GET | `/adocoes/ano/{ano}` | Adoções por ano |
 | GET | `/adocoes/id/{adocao_id}` | Buscar adoção por ID |
 
